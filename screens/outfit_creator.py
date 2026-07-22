@@ -91,9 +91,8 @@ class OutfitCreatorScreen:
             self.clothes_img = self._scale_for_processing(self.clothes_img, 600)
             self.clothes_img = self._make_background_transparent(self.clothes_img)
             self.outfit_images = self._split_outfit_sheet(self.clothes_img, (110, 112), trim=True)
-            # Keep the source margins for the avatar layer. The four figures
-            # share one body grid; trimming each one separately makes their
-            # heads, hands, and feet shift when an outfit is selected.
+            # The source figures are complete body illustrations. Keep their
+            # full figure for the avatar view, but trim preview cards below.
             self.avatar_outfit_images = self._split_outfit_sheet(
                 self.clothes_img, (230, 350), trim=False
             )
@@ -268,18 +267,6 @@ class OutfitCreatorScreen:
         height = max(1, int(image.get_height() * scale))
         return pygame.transform.smoothscale(image, (width, height))
 
-    def _remove_base_hands(self, image):
-        """Remove base hands because outfit artwork includes its own hands."""
-        cleaned = image.copy()
-        width, height = cleaned.get_size()
-        hand_regions = (
-            pygame.Rect(int(width * 0.17), int(height * 0.41), int(width * 0.17), int(height * 0.13)),
-            pygame.Rect(int(width * 0.66), int(height * 0.41), int(width * 0.17), int(height * 0.13)),
-        )
-        for region in hand_regions:
-            pygame.draw.rect(cleaned, (0, 0, 0, 0), region)
-        return cleaned
-
     def handle_event(self, event, app):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.back_rect.collidepoint(event.pos):
@@ -362,13 +349,11 @@ class OutfitCreatorScreen:
         layer_center = (avatar_layer.get_width() // 2, avatar_layer.get_height() // 2)
 
         if self.avatar_outfit_images and self.visible_outfit_index is not None:
-            if self.character_img_scaled:
-                base_character = self._remove_base_hands(self.character_img_scaled)
-                img_rect = base_character.get_rect(center=(layer_center[0], layer_center[1] + 12))
-                avatar_layer.blit(base_character, img_rect)
-
+            # These assets include the head, arms, hands, clothes, and legs.
+            # Draw one complete figure instead of compositing two different
+            # characters, which is what caused the clothing and hands to miss.
             outfit = self.avatar_outfit_images[self.visible_outfit_index]
-            outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 44))
+            outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 30))
             avatar_layer.blit(outfit, outfit_rect)
         elif self.character_img_scaled:
             img_rect = self.character_img_scaled.get_rect(center=(layer_center[0], layer_center[1] + 12))

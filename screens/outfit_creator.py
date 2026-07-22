@@ -43,6 +43,7 @@ class OutfitCreatorScreen:
         self.confirm_rect = pygame.Rect(0, 0, 0, 0)
         self.character_img = None
         self.character_img_scaled = None
+        self.character_head_scaled = None
         self.current_outfit = "pink"
         self.selected_outfit_index = None
         self.visible_outfit_index = None
@@ -68,15 +69,25 @@ class OutfitCreatorScreen:
         if not character_path.exists():
             return
         try:
-            self.character_img = pygame.image.load(str(character_path)).convert_alpha()
+            source = pygame.image.load(str(character_path)).convert_alpha()
             max_width, max_height = 320, 440
-            scale = min(max_width / self.character_img.get_width(), max_height / self.character_img.get_height(), 1.0)
-            width = int(self.character_img.get_width() * scale)
-            height = int(self.character_img.get_height() * scale)
-            self.character_img_scaled = pygame.transform.smoothscale(self.character_img, (width, height))
+            scale = min(max_width / source.get_width(), max_height / source.get_height(), 1.0)
+            width = int(source.get_width() * scale)
+            height = int(source.get_height() * scale)
+            self.character_img_scaled = pygame.transform.smoothscale(source, (width, height))
+            self.character_img_scaled = self._make_background_transparent(self.character_img_scaled)
+            self.character_img = self.character_img_scaled
+            head_rect = pygame.Rect(
+                int(width * 0.25),
+                int(height * 0.01),
+                int(width * 0.50),
+                int(height * 0.25),
+            )
+            self.character_head_scaled = self.character_img_scaled.subsurface(head_rect).copy()
         except Exception:
             self.character_img = None
             self.character_img_scaled = None
+            self.character_head_scaled = None
 
     def _load_clothes_image(self):
         asset_path = Path(__file__).parent.parent / "assets" / "images" / "clothes.png"
@@ -350,11 +361,21 @@ class OutfitCreatorScreen:
 
         if self.avatar_outfit_images and self.visible_outfit_index is not None:
             # These assets include the head, arms, hands, clothes, and legs.
-            # Draw one complete figure instead of compositing two different
-            # characters, which is what caused the clothing and hands to miss.
+            # Draw one complete outfit figure, then add the character's face
+            # and hair so the selected body still belongs to her.
             outfit = self.avatar_outfit_images[self.visible_outfit_index]
             outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 30))
             avatar_layer.blit(outfit, outfit_rect)
+            if self.character_head_scaled:
+                head_size = (
+                    max(1, int(outfit_rect.width * 0.78)),
+                    max(1, int(outfit_rect.height * 0.42)),
+                )
+                head = pygame.transform.smoothscale(self.character_head_scaled, head_size)
+                head_rect = head.get_rect(
+                    midbottom=(outfit_rect.centerx, outfit_rect.top + int(outfit_rect.height * 0.22))
+                )
+                avatar_layer.blit(head, head_rect)
         elif self.character_img_scaled:
             img_rect = self.character_img_scaled.get_rect(center=(layer_center[0], layer_center[1] + 12))
             avatar_layer.blit(self.character_img_scaled, img_rect)

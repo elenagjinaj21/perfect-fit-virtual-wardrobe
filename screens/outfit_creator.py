@@ -105,7 +105,7 @@ class OutfitCreatorScreen:
             # The source figures are complete body illustrations. Keep their
             # full figure for the avatar view, but trim preview cards below.
             self.avatar_outfit_images = self._split_outfit_sheet(
-                self.clothes_img, (230, 350), trim=False
+                self.clothes_img, (300, 430), trim=False
             )
         except Exception:
             self.clothes_img = None
@@ -364,20 +364,28 @@ class OutfitCreatorScreen:
             # Draw one complete outfit figure, then add only her face and hair.
             # The head crop deliberately excludes the base hooded torso, so
             # the selected clothes remain in front and cannot be covered by it.
+            outfit = self.avatar_outfit_images[self.visible_outfit_index]
+            outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 5))
             if self.character_head_scaled:
-                head_anchor = layer_center[1] - 145
+                head_width = max(1, int(outfit_rect.width * 0.78))
+                head_height = max(
+                    1,
+                    int(
+                        head_width
+                        * self.character_head_scaled.get_height()
+                        / self.character_head_scaled.get_width()
+                    ),
+                )
                 head_size = (
-                    145,
-                    88,
+                    head_width,
+                    head_height,
                 )
                 head = pygame.transform.smoothscale(self.character_head_scaled, head_size)
                 head_rect = head.get_rect(
-                    midbottom=(layer_center[0], head_anchor + 88),
+                    midbottom=(outfit_rect.centerx, outfit_rect.top + int(outfit_rect.height * 0.22)),
                 )
                 avatar_layer.blit(head, head_rect)
 
-            outfit = self.avatar_outfit_images[self.visible_outfit_index]
-            outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 30))
             avatar_layer.blit(outfit, outfit_rect)
         elif self.character_img_scaled:
             img_rect = self.character_img_scaled.get_rect(center=(layer_center[0], layer_center[1] + 12))

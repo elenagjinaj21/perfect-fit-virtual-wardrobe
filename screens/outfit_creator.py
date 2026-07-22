@@ -90,8 +90,13 @@ class OutfitCreatorScreen:
             self.clothes_img = pygame.image.load(str(image_path)).convert_alpha()
             self.clothes_img = self._scale_for_processing(self.clothes_img, 600)
             self.clothes_img = self._make_background_transparent(self.clothes_img)
-            self.outfit_images = self._split_outfit_sheet(self.clothes_img, (110, 112))
-            self.avatar_outfit_images = self._split_outfit_sheet(self.clothes_img, (230, 350))
+            self.outfit_images = self._split_outfit_sheet(self.clothes_img, (110, 112), trim=True)
+            # Keep the source margins for the avatar layer. The four figures
+            # share one body grid; trimming each one separately makes their
+            # heads, hands, and feet shift when an outfit is selected.
+            self.avatar_outfit_images = self._split_outfit_sheet(
+                self.clothes_img, (230, 350), trim=False
+            )
         except Exception:
             self.clothes_img = None
             self.outfit_images = []
@@ -154,12 +159,13 @@ class OutfitCreatorScreen:
                     cleaned.set_at((x, y), (255, 255, 255, 0))
         return cleaned
 
-    def _split_outfit_sheet(self, sheet, max_size):
+    def _split_outfit_sheet(self, sheet, max_size, trim=True):
         outfits = []
         for area in self._source_regions(sheet):
             outfit = sheet.subsurface(area).copy()
             outfit.set_colorkey((0, 0, 0))
-            outfit = self._trim_visible_pixels(outfit)
+            if trim:
+                outfit = self._trim_visible_pixels(outfit)
             outfits.append(self._scale_to_fit(outfit, max_size))
         return outfits
 

@@ -1,6 +1,6 @@
 # Perfect Fit — Virtual Wardrobe
 
-Perfect Fit is a pink-themed Python/Pygame desktop game by Elena Gjinaj. It
+Perfect Fit is a Python/Pygame desktop game done by me. It
 lets players create an account, browse a wardrobe, style a character, and
 choose the outfit that makes her smile.
 
@@ -22,8 +22,7 @@ python main.py
 
 ## Portfolio highlights
 
-This project demonstrates practical skills useful for a junior Python or
-game-development role:
+This project demonstrates:
 
 - Object-oriented Python application structure
 - Pygame event handling, animation, compositing, and responsive layout

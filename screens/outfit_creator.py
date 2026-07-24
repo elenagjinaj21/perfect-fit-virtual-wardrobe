@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pygame
 
-from utils.colors import BLUE, GOLD, GRAY, GREEN, LIGHT_PINK, PINK, WHITE
+from utils.colors import BLUE, GOLD, GRAY, GREEN, LIGHT_PINK, PINK
 
 OUTFIT_KEYS = ("pink", "blue", "green", "gold")
 TRANSITION_FRAMES = 18
@@ -13,6 +13,12 @@ OUTFIT_SOURCE_REGIONS = (
     (0.53, 0.13, 0.71, 0.96),
     (0.78, 0.13, 0.96, 0.97),
 )
+HEAD_SOURCE_RECT = (0.14, 0.015, 0.68, 0.245)
+AVATAR_LAYER_SIZE = (380, 430)
+AVATAR_OUTFIT_SIZE = (260, 398)
+HEAD_WIDTH_FACTORS = (0.66, 0.68, 0.67, 0.65)
+HEAD_CENTER_X_FACTORS = (0.50, 0.50, 0.50, 0.49)
+HEAD_BOTTOM_FACTORS = (0.135, 0.125, 0.135, 0.145)
 WRONG_CHOICE_REGIONS = (
     (0.04, 0.08, 0.32, 0.96),
     (0.36, 0.08, 0.66, 0.96),
@@ -78,10 +84,10 @@ class OutfitCreatorScreen:
             self.character_img_scaled = self._make_background_transparent(self.character_img_scaled)
             self.character_img = self.character_img_scaled
             head_rect = pygame.Rect(
-                int(width * 0.25),
-                int(height * 0.01),
-                int(width * 0.50),
-                int(height * 0.20),
+                int(width * HEAD_SOURCE_RECT[0]),
+                int(height * HEAD_SOURCE_RECT[1]),
+                int(width * (HEAD_SOURCE_RECT[2] - HEAD_SOURCE_RECT[0])),
+                int(height * (HEAD_SOURCE_RECT[3] - HEAD_SOURCE_RECT[1])),
             )
             self.character_head_scaled = self.character_img_scaled.subsurface(head_rect).copy()
         except Exception:
@@ -105,7 +111,7 @@ class OutfitCreatorScreen:
             # The source figures are complete body illustrations. Keep their
             # full figure for the avatar view, but trim preview cards below.
             self.avatar_outfit_images = self._split_outfit_sheet(
-                self.clothes_img, (300, 430), trim=False
+                self.clothes_img, AVATAR_OUTFIT_SIZE, trim=True
             )
         except Exception:
             self.clothes_img = None
@@ -278,6 +284,14 @@ class OutfitCreatorScreen:
         height = max(1, int(image.get_height() * scale))
         return pygame.transform.smoothscale(image, (width, height))
 
+    def _draw_soft_shadow(self, surface, center, size):
+        shadow = pygame.Surface(size, pygame.SRCALPHA)
+        shadow_rect = shadow.get_rect()
+        for step, alpha in enumerate((42, 28, 16, 8)):
+            inflated = shadow_rect.inflate(-step * 18, -step * 9)
+            pygame.draw.ellipse(shadow, (120, 64, 98, alpha), inflated)
+        surface.blit(shadow, shadow.get_rect(center=center))
+
     def handle_event(self, event, app):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.back_rect.collidepoint(event.pos):
@@ -356,18 +370,19 @@ class OutfitCreatorScreen:
         tilt = math.sin((1 - transition) * math.pi * 2) * 6 if transition else 0
         avatar_center = (center_x, int(center_y + bob + bounce))
 
-        avatar_layer = pygame.Surface((330, 455), pygame.SRCALPHA)
+        avatar_layer = pygame.Surface(AVATAR_LAYER_SIZE, pygame.SRCALPHA)
         layer_center = (avatar_layer.get_width() // 2, avatar_layer.get_height() // 2)
 
         if self.avatar_outfit_images and self.visible_outfit_index is not None:
-            # These assets include the head, arms, hands, clothes, and legs.
-            # Draw one complete outfit figure, then add only her face and hair.
-            # The head crop deliberately excludes the base hooded torso, so
-            # the selected clothes remain in front and cannot be covered by it.
+            # Draw the selected full-body outfit first, then graft the
+            # character's head above the neckline using outfit-specific anchors.
             outfit = self.avatar_outfit_images[self.visible_outfit_index]
-            outfit_rect = outfit.get_rect(center=(layer_center[0], layer_center[1] + 5))
+            outfit_rect = outfit.get_rect(midbottom=(layer_center[0], avatar_layer.get_height() - 4))
+            avatar_layer.blit(outfit, outfit_rect)
+
             if self.character_head_scaled:
-                head_width = max(1, int(outfit_rect.width * 0.78))
+                index = self.visible_outfit_index
+                head_width = max(1, int(outfit_rect.width * HEAD_WIDTH_FACTORS[index]))
                 head_height = max(
                     1,
                     int(
@@ -382,19 +397,21 @@ class OutfitCreatorScreen:
                 )
                 head = pygame.transform.smoothscale(self.character_head_scaled, head_size)
                 head_rect = head.get_rect(
-                    midbottom=(outfit_rect.centerx, outfit_rect.top + int(outfit_rect.height * 0.22)),
+                    midbottom=(
+                        outfit_rect.left + int(outfit_rect.width * HEAD_CENTER_X_FACTORS[index]),
+                        outfit_rect.top + int(outfit_rect.height * HEAD_BOTTOM_FACTORS[index]),
+                    ),
                 )
                 avatar_layer.blit(head, head_rect)
-
-            avatar_layer.blit(outfit, outfit_rect)
         elif self.character_img_scaled:
-            img_rect = self.character_img_scaled.get_rect(center=(layer_center[0], layer_center[1] + 12))
+            img_rect = self.character_img_scaled.get_rect(midbottom=(layer_center[0], avatar_layer.get_height() - 4))
             avatar_layer.blit(self.character_img_scaled, img_rect)
 
         if tilt:
             avatar_layer = pygame.transform.rotozoom(avatar_layer, tilt, 1.0)
 
         avatar_rect = avatar_layer.get_rect(center=avatar_center)
+        self._draw_soft_shadow(surface, (avatar_rect.centerx, avatar_rect.bottom - 10), (180, 32))
         surface.blit(avatar_layer, avatar_rect)
 
     def draw(self, surface, app):
@@ -453,10 +470,11 @@ class OutfitCreatorScreen:
         surface.blit(subtitle, (50, 90))
 
         panel = pygame.Rect(40, 130, 720, 420)
-        pygame.draw.rect(surface, WHITE, panel, border_radius=30)
-        pygame.draw.rect(surface, PINK, panel, 4, border_radius=30)
+        pygame.draw.rect(surface, (255, 250, 253), panel, border_radius=22)
+        pygame.draw.rect(surface, (255, 204, 230), panel, 4, border_radius=22)
+        pygame.draw.line(surface, (255, 224, 240), (410, 154), (410, 524), 2)
 
-        self.draw_character(surface, 545, 345)
+        self.draw_character(surface, 545, 326)
 
         question = "Which outfit makes her smile?"
         question_surf = app.font.render(question, True, (120, 30, 90))

@@ -13,12 +13,12 @@ OUTFIT_SOURCE_REGIONS = (
     (0.53, 0.13, 0.71, 0.96),
     (0.78, 0.13, 0.96, 0.97),
 )
-HEAD_SOURCE_RECT = (0.14, 0.015, 0.68, 0.245)
+HEAD_SOURCE_RECT = (0.24, 0.01, 0.67, 0.205)
 AVATAR_LAYER_SIZE = (380, 430)
 AVATAR_OUTFIT_SIZE = (260, 398)
-HEAD_WIDTH_FACTORS = (0.66, 0.68, 0.67, 0.65)
+HEAD_WIDTH_FACTORS = (0.66, 0.67, 0.66, 0.64)
 HEAD_CENTER_X_FACTORS = (0.50, 0.50, 0.50, 0.49)
-HEAD_BOTTOM_FACTORS = (0.135, 0.125, 0.135, 0.145)
+HEAD_BOTTOM_FACTORS = (0.16, 0.15, 0.16, 0.17)
 WRONG_CHOICE_REGIONS = (
     (0.04, 0.08, 0.32, 0.96),
     (0.36, 0.08, 0.66, 0.96),
@@ -374,8 +374,8 @@ class OutfitCreatorScreen:
         layer_center = (avatar_layer.get_width() // 2, avatar_layer.get_height() // 2)
 
         if self.avatar_outfit_images and self.visible_outfit_index is not None:
-            # Draw the selected full-body outfit first, then graft the
-            # character's head above the neckline using outfit-specific anchors.
+            # Draw the selected full-body outfit, then place a head-only crop
+            # at the neckline so the original hoodie never covers the clothes.
             outfit = self.avatar_outfit_images[self.visible_outfit_index]
             outfit_rect = outfit.get_rect(midbottom=(layer_center[0], avatar_layer.get_height() - 4))
             avatar_layer.blit(outfit, outfit_rect)
